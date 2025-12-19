@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>PPE Request Manager (Local HTML • Excel)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- SheetJS (XLSX) for Excel read/write -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#0f172a; --card:#111827; --muted:#1f2937; --txt:#e5e7eb; --pri:#38bdf8; --acc:#22c55e; --warn:#f59e0b; --danger:#ef4444;
+    }
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,sans-serif;}
+    header{padding:16px 20px;border-bottom:1px solid #222;background:linear-gradient(180deg,#0b1223,#0f172a);} 
+    h1{margin:0;font-size:20px;display:flex;align-items:center;gap:10px;}
+    h1 .tag{font-size:12px;color:#a5b4fc;background:#312e81;border:1px solid #4338ca;padding:2px 6px;border-radius:6px;}
+    .container{max-width:1180px;margin:0 auto;padding:16px;}
+    .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 18px;}
+    button,.btn{background:var(--muted);color:var(--txt);border:1px solid #2a3443;border-radius:8px;padding:8px 12px;cursor:pointer;}
+    button:hover{filter:brightness(1.08)}
+    .btn-primary{background:var(--pri);color:#001018;border-color:#38bdf8;}
+    .btn-success{background:var(--acc);color:#00140a;border-color:#22c55e;}
+    .btn-warn{background:var(--warn);color:#140d00;border-color:#f59e0b;}
+    .btn-danger{background:var(--danger);color:#140001;border-color:#ef4444;}
+    .btn-ghost{background:transparent;border-color:#3a4455}
+    input,select,textarea{background:#0b1322;color:var(--txt);border:1px solid #243042;border-radius:8px;padding:8px 10px;outline:none;}
+    input:focus,select:focus,textarea:focus{border-color:#3b82f6;box-shadow:0 0 0 2px #1e3a8a inset}
+    .grid{display:grid;gap:12px}
+    .grid-2{grid-template-columns:1fr 1fr}
+    .grid-3{grid-template-columns:repeat(3, 1fr)}
+    @media(max-width:900px){.grid-2,.grid-3{grid-template-columns:1fr}}
+    .card{background:var(--card);border:1px solid #202a3a;border-radius:12px;padding:16px}
+    .card h2{margin:0 0 10px 0;font-size:18px}
+    .section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:18px 0 10px}
+    table{width:100%;border-collapse:collapse;border:1px solid #223046}
+    th,td{padding:10px;border-bottom:1px solid #223046;text-align:left;font-size:14px}
+    th{background:#0b1322;position:sticky;top:0;z-index:1}
+    tr:hover td{background:#0c1628}
+    .status{padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid #2a3448;display:inline-block}
+    .status.open{background:#052e2b;color:#8cf5d2;border-color:#0d9488}
+    .status.closed{background:#2a110f;color:#f5a3a3;border-color:#b91c1c}
+    .muted{color:#9aa4b2}
+    .pill{padding:2px 8px;border-radius:999px;background:#0b1322;border:1px solid #2a3443;color:#cbd5e1;font-size:12px}
+    .row-actions{display:flex;gap:6px;flex-wrap:wrap}
+    .sr-only{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+    .footer{margin:24px 0 40px;color:#9aa4b2;font-size:12px}
+    .divider{height:1px;background:#223046;margin:12px 0}
+    dialog{border:none;border-radius:12px;padding:0;max-width:680px;width:96%;background:var(--card);color:var(--txt)}
+    dialog::backdrop{background:rgba(0,0,0,0.6)}
+    .modal-header{padding:14px 16px;border-bottom:1px solid #223046;display:flex;align-items:center;justify-content:space-between}
+    .modal-body{padding:16px}
+    .modal-footer{padding:12px 16px;border-top:1px solid #223046;display:flex;gap:8px;justify-content:flex-end}
+  </style>
+
+  <style>
+  /* === PRETTY REPORT THEME === */
+  :root{
+    --brand:#0ea5e9; /* accent */
+    --ink:#0b1220;   /* dark text */
+    --muted-ink:#475569;
+    --line:#e2e8f0;  /* light borders */
+    --kpi-open:#10b981;
+    --kpi-closed:#ef4444;
+  }
+  .report-wrap{display:grid; gap:16px;}
+  .report-page{
+    background:white; color:var(--ink);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:24px;
+    margin:12px 0;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  }
+  .report-header{display:flex; align-items:center; justify-content:space-between; gap:16px; border-bottom:1px solid var(--line); padding-bottom:12px;}
+  .report-brand{display:flex; align-items:center; gap:12px;}
+  .report-brand img{width:48px; height:48px; object-fit:contain;}
+  .report-brand h2{margin:0; font-size:20px;}
+  .report-meta{font-size:12px; color:var(--muted-ink)}
+  .report-title{margin:6px 0 0 0; font-size:16px; color:#0f172a}
+  .report-kpis{display:flex; gap:8px; flex-wrap:wrap; margin-top:8px}
+  .kpi{display:inline-flex; align-items:center; gap:8px; background:#f8fafc; border:1px solid var(--line); border-radius:10px; padding:6px 10px; font-size:13px;}
+  .kpi .dot{width:10px;height:10px;border-radius:50%}
+  .kpi.open .dot{background:var(--kpi-open)}
+  .kpi.closed .dot{background:var(--kpi-closed)}
+  .kpi.total .dot{background:var(--brand)}
+  .section{margin-top:18px}
+  .section h3{margin:0 0 8px 0; font-size:15px; color:#0f172a}
+  .table{width:100%; border-collapse:separate; border-spacing:0; font-size:13px; background:white; border:1px solid var(--line); border-radius:10px; overflow:hidden;}
+  .table thead th{background:#f1f5f9; color:#0f172a; text-align:left; padding:10px; border-bottom:1px solid var(--line);}
+  .table tbody td{padding:10px; border-bottom:1px solid var(--line); vertical-align:top;}
+  .table tbody tr:nth-child(even) td{ background:#fafafa; }
+  .badge{display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid #cbd5e1; color:#0f172a; background:#f8fafc;}
+  .badge.open{border-color:#10b98133; background:#ecfdf5; color:#065f46}
+  .badge.closed{border-color:#ef444433; background:#fff1f2; color:#991b1b}
+  .small{font-size:12px; color:var(--muted-ink)}
+  .divider{height:1px; background:var(--line); margin:12px 0}
+  .page-break{break-after: page}
+  @media screen { #printArea .report-page {max-width: 900px; margin-inline:auto;} }
+  @media print{
+    :root { color-scheme: light; }
+    body { background:white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    header,.toolbar,.no-print { display:none !important; }
+    #reportCard { border:none; box-shadow:none; }
+    .report-page { box-shadow:none; border: none; border-radius:0; padding:10mm; }
+    @page { size: A4; margin: 10mm 10mm 12mm 10mm; }
+    .page-break { break-after: page; }
+  }
+  </style>
+
+</head>
+<body>
+<header>
+  <h1>PPE Request Manager <span class="tag">Local • HTML+CSS+JS • Excel</span></h1>
+</header>
+
+<div class="container">
+
+  <!-- Global actions -->
+  <div class="toolbar">
+    <label class="btn btn-ghost">
+      <input id="openFile" class="sr-only" type="file" accept=".xlsx,.xls" />
+      📂 Open Existing Excel DB
+    </label>
+    <button id="createDbBtn" class="btn">🆕 Create New DB</button>
+    <button id="saveDbBtn" class="btn btn-primary">💾 Save DB (Excel)</button>
+    <button id="exportReportAllBtn" class="btn btn-success">📑 Export Reports (All → Excel)</button>
+    <button id="printAllBtn" class="btn btn-warn">🖨️ Print All Employee Reports</button>
+
+    <!-- Logo upload for pretty reports -->
+    <label class="btn btn-ghost no-print">
+      <input id="logoInput" class="sr-only" type="file" accept="image/*" />
+      🖼️ Upload Logo
+    </label>
+
+    <!-- Optional: File System Access API (Chrome/Edge over localhost/HTTPS) -->
+    <button id="openDbPickerBtn" class="btn btn-ghost" title="Open and keep a handle for re-saving">📂 Open (Picker)</button>
+    <button id="saveSameBtn" class="btn btn-primary" title="Save back to the same file without re-downloading">💾 Save (Same File)</button>
+  </div>
+
+  <div class="grid grid-2">
+    <!-- Employees -->
+    <section class="card" id="employeesCard">
+      <div class="section-title">
+        <h2>Employees</h2>
+        <div class="row-actions no-print">
+          <button id="addEmployeeBtn" class="btn btn-success">➕ Add Employee</button>
+        </div>
+      </div>
+      <div class="grid grid-3">
+        <input id="empSearch" type="search" placeholder="Search employees by name…" />
+        <select id="empStatusFilter">
+          <option value="all">All Statuses</option>
+          <option value="Active" selected>Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+        <button id="printSelectedEmp" class="btn btn-warn">🖨️ Print Selected Employee Report</button>
+      </div>
+      <div class="divider"></div>
+      <div style="max-height:360px;overflow:auto">
+        <table id="empTable">
+          <thead>
+            <tr>
+              <th width="40">#</th>
+              <th>Name</th>
+              <th>Department</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Hire Date</th>
+              <th class="no-print">Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- PPE Requests -->
+    <section class="card" id="requestsCard">
+      <div class="section-title">
+        <h2>PPE Requests</h2>
+        <div class="row-actions no-print">
+          <button id="addRequestBtn" class="btn btn-success">➕ New PPE Request</button>
+        </div>
+      </div>
+      <div class="grid grid-3">
+        <select id="filterEmployee"><option value="">All Employees</option></select>
+        <input id="filterType" type="search" placeholder="Filter by PPE Type (e.g., Gloves, Helmet)" />
+        <select id="filterStatus">
+          <option value="Open" selected>Open</option>
+          <option value="Closed">Closed</option>
+          <option value="">All</option>
+        </select>
+      </div>
+      <div class="divider"></div>
+      <div style="max-height:360px;overflow:auto">
+        <table id="reqTable">
+          <thead>
+            <tr>
+              <th width="40">#</th>
+              <th>Employee</th>
+              <th>PPE Type</th>
+              <th>Size</th>
+              <th>Qty</th>
+              <th>Request Date</th>
+              <th>Need By</th>
+              <th>Status</th>
+              <th>Notes</th>
+              <th class="no-print">Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- Print zone (pretty report injected here) -->
+  <section class="card" id="reportCard" style="margin-top:16px">
+    <div class="section-title">
+      <h2>Reports</h2>
+      <div class="row-actions no-print">
+        <select id="reportEmployee"><option value="">Select employee…</option></select>
+        <button id="exportReportOneBtn" class="btn btn-primary">📑 Export Report (Selected → Excel)</button>
+      </div>
+    </div>
+    <div id="printArea" class="report-wrap">
+      <p class="muted">Use the buttons above to print or export reports.</p>
+    </div>
+  </section>
+
+  <div class="footer">
+    ⚠️ Tip: This tool reads/writes Excel by asking you to open/save the file. For automatic saving
+    to the same file, use Chrome/Edge and the File System Access API (buttons provided)—works over HTTPS or http://localhost.
+  </div>
+</div>
+
+<!-- Dialogs -->
+<dialog id="dlgNewDb">
+  <div class="modal-header"><strong>Create New Database</strong><button class="btn btn-ghost" onclick="dlgNewDb.close()">✖</button></div>
+  <div class="modal-body grid">
+    <label>Paste employee names (one per line)</label>
+    <textarea id="seedEmployees" rows="8" placeholder="e.g.
+Maria Gonzalez
+Juan Perez
+..."></textarea>
+    <div class="muted">You can add departments/roles later. Click "Create" to initialize the Excel DB.</div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="dlgNewDb.close()">Cancel</button>
+    <button id="btnCreateDb" class="btn btn-success">Create</button>
+  </div>
+</dialog>
+
+<dialog id="dlgEmployee">
+  <div class="modal-header"><strong>Add / Edit Employee</strong><button class="btn btn-ghost" onclick="dlgEmployee.close()">✖</button></div>
+  <div class="modal-body grid grid-2">
+    <input id="empId" type="hidden" />
+    <label>Name <input id="empName" placeholder="Full name" /></label>
+    <label>Department <input id="empDept" placeholder="(optional)" /></label>
+    <label>Role <input id="empRole" placeholder="(optional)" /></label>
+    <label>Status
+      <select id="empStatus">
+        <option>Active</option>
+        <option>Inactive</option>
+      </select>
+    </label>
+    <label>Hire Date <input id="empHireDate" type="date" /></label>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="dlgEmployee.close()">Cancel</button>
+    <button id="btnSaveEmployee" class="btn btn-success">Save</button>
+  </div>
+</dialog>
+
+<dialog id="dlgRequest">
+  <div class="modal-header"><strong>New / Edit PPE Request</strong><button class="btn btn-ghost" onclick="dlgRequest.close()">✖</button></div>
+  <div class="modal-body grid grid-2">
+    <input id="reqId" type="hidden" />
+    <label>Employee
+      <select id="reqEmployee"></select>
+    </label>
+    <label>PPE Type <input id="reqType" placeholder="Gloves, Helmet, Safety Glasses…" /></label>
+    <label>Size <input id="reqSize" placeholder="S / M / L / XL or numeric" /></label>
+    <label>Quantity <input id="reqQty" type="number" min="1" value="1" /></label>
+    <label>Request Date <input id="reqDate" type="date" /></label>
+    <label>Need By <input id="reqNeedBy" type="date" /></label>
+    <label>Status
+      <select id="reqStatus">
+        <option>Open</option>
+        <option>Closed</option>
+      </select>
+    </label>
+    <label>Notes <input id="reqNotes" placeholder="Optional notes" /></label>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="dlgRequest.close()">Cancel</button>
+    <button id="btnSaveRequest" class="btn btn-success">Save</button>
+  </div>
+</dialog>
+
+<script>
+/* ========= In-memory state ========= */
+let employees = [];
+let requests  = [];
+let hasChanges = false;
+
+/* ========= Helpers ========= */
+const $ = sel => document.querySelector(sel);
+const $$ = sel => document.querySelectorAll(sel);
+const byId = id => document.getElementById(id);
+const todayISO = () => new Date().toISOString().slice(0,10);
+const uid = () => (crypto?.randomUUID?.() || ('id_' + Date.now() + '_' + Math.random().toString(16).slice(2)));
+function markDirty(val=true){ hasChanges = val; }
+
+// === Report identity (pre-set to user's branding) ===
+let REPORT = {
+  orgName: 'Mentor Technical Group',
+  site: 'BI plant',
+  footerNote: 'Report generated by PPE Request Manager',
+  logo: localStorage.getItem('reportLogo') || ''
+};
+
+// Handle logo upload (stores as data URL locally)
+const logoInput = document.getElementById('logoInput');
+if (logoInput){
+  logoInput.addEventListener('change', async (e)=>{
+    const file = e.target.files?.[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { REPORT.logo = reader.result; localStorage.setItem('reportLogo', REPORT.logo); alert('Logo saved for reports.'); };
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ========= UI Populate ========= */
+function refreshEmployeeDropdowns(){
+  const opts = ['<option value="">Select employee…</option>']
+    .concat(employees.filter(e=>e.Status!=='Inactive')
+      .map(e=>`<option value="${e.EmployeeID}">${escapeHtml(e.Name)}</option>`));
+  byId('reqEmployee').innerHTML = opts.join('');
+  byId('filterEmployee').innerHTML = ['<option value="">All Employees</option>']
+    .concat(employees.map(e=>`<option value="${e.EmployeeID}">${escapeHtml(e.Name)}</option>`)).join('');
+  byId('reportEmployee').innerHTML = ['<option value="">Select employee…</option>']
+    .concat(employees.map(e=>`<option value="${e.EmployeeID}">${escapeHtml(e.Name)}</option>`)).join('');
+}
+
+function renderEmployees(){
+  const q = byId('empSearch').value.trim().toLowerCase();
+  const status = byId('empStatusFilter').value;
+  const tbody = byId('empTable').querySelector('tbody');
+  const filtered = employees.filter(e=>{
+    const nameMatch = (e.Name||'').toLowerCase().includes(q);
+    const statusMatch = (status==='all') || (e.Status===status);
+    return nameMatch && statusMatch;
+  });
+  tbody.innerHTML = filtered.map((e, idx)=>`
+    <tr>
+      <td>${idx+1}</td>
+      <td>${escapeHtml(e.Name||'')}</td>
+      <td>${escapeHtml(e.Department||'')}</td>
+      <td>${escapeHtml(e.Role||'')}</td>
+      <td><span class="status ${e.Status==='Active'?'open':'closed'} pill">${escapeHtml(e.Status||'')}</span></td>
+      <td>${escapeHtml(e.HireDate||'')}</td>
+      <td class="no-print">
+        <div class="row-actions">
+          <button class="btn btn-ghost" onclick="editEmployee('${e.EmployeeID}')">✏️ Edit</button>
+          <button class="btn btn-ghost" onclick="newRequestFor('${e.EmployeeID}')">➕ Request</button>
+          <button class="btn btn-ghost" onclick="printEmployeeReport('${e.EmployeeID}')">🖨️ Report</button>
+          <button class="btn btn-danger" onclick="softDeleteEmployee('${e.EmployeeID}')">🗑️ Inactivate</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderRequests(){
+  const empId = byId('filterEmployee').value;
+  const typeQ = byId('filterType').value.trim().toLowerCase();
+  const st = byId('filterStatus').value;
+  const tbody = byId('reqTable').querySelector('tbody');
+  const filtered = requests.filter(r=>{
+    const empMatch = !empId || r.EmployeeID===empId;
+    const typeMatch = !typeQ || (r.PPEType||'').toLowerCase().includes(typeQ);
+    const statusMatch = !st || r.Status===st;
+    return empMatch && typeMatch && statusMatch;
+  });
+  tbody.innerHTML = filtered.map((r, idx)=>`
+    <tr>
+      <td>${idx+1}</td>
+      <td>${escapeHtml(r.EmployeeName)}</td>
+      <td>${escapeHtml(r.PPEType||'')}</td>
+      <td>${escapeHtml(r.Size||'')}</td>
+      <td>${escapeHtml(String(r.Quantity||''))}</td>
+      <td>${escapeHtml(r.RequestDate||'')}</td>
+      <td>${escapeHtml(r.NeedByDate||'')}</td>
+      <td><span class="status ${r.Status==='Open'?'open':'closed'}">${escapeHtml(r.Status)}</span></td>
+      <td>${escapeHtml(r.Notes||'')}</td>
+      <td class="no-print">
+        <div class="row-actions">
+          <button class="btn btn-ghost" onclick="editRequest('${r.RequestID}')">✏️ Edit</button>
+          ${r.Status==='Open' ? `<button class="btn btn-success" onclick="closeRequest('${r.RequestID}')">✅ Close</button>` : ''}
+          <button class="btn btn-danger" onclick="deleteRequest('${r.RequestID}')">🗑️ Delete</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+/* ========= Employee CRUD ========= */
+function newEmployee(){
+  byId('empId').value = '';
+  byId('empName').value = '';
+  byId('empDept').value = '';
+  byId('empRole').value = '';
+  byId('empStatus').value = 'Active';
+  byId('empHireDate').value = '';
+  byId('dlgEmployee').showModal();
+}
+function editEmployee(id){
+  const e = employees.find(x=>x.EmployeeID===id);
+  if(!e) return;
+  byId('empId').value = e.EmployeeID;
+  byId('empName').value = e.Name || '';
+  byId('empDept').value = e.Department || '';
+  byId('empRole').value = e.Role || '';
+  byId('empStatus').value = e.Status || 'Active';
+  byId('empHireDate').value = e.HireDate || '';
+  byId('dlgEmployee').showModal();
+}
+function softDeleteEmployee(id){
+  const e = employees.find(x=>x.EmployeeID===id);
+  if(!e) return;
+  if(!confirm(`Mark ${e.Name} as Inactive? Their history will remain.`)) return;
+  e.Status = 'Inactive';
+  markDirty(); renderEmployees(); refreshEmployeeDropdowns();
+}
+function saveEmployeeFromDialog(){
+  const id = byId('empId').value || uid();
+  const obj = {
+    EmployeeID: id,
+    Name: (byId('empName').value||'').trim(),
+    Department: (byId('empDept').value||'').trim(),
+    Role: (byId('empRole').value||'').trim(),
+    Status: byId('empStatus').value,
+    HireDate: byId('empHireDate').value
+  };
+  if(!obj.Name){ alert('Name is required'); return; }
+  const idx = employees.findIndex(e=>e.EmployeeID===id);
+  if(idx>=0) employees[idx]=obj; else employees.push(obj);
+  requests.forEach(r=>{ if(r.EmployeeID===id){ r.EmployeeName=obj.Name; }});
+  markDirty(); byId('dlgEmployee').close(); renderEmployees(); refreshEmployeeDropdowns(); renderRequests();
+}
+
+/* ========= Request CRUD ========= */
+function newRequestFor(employeeId){
+  openRequestDialog();
+  if(employeeId) byId('reqEmployee').value = employeeId;
+}
+function openRequestDialog(req){
+  byId('reqId').value = req?.RequestID || '';
+  byId('reqEmployee').value = req?.EmployeeID || '';
+  byId('reqType').value = req?.PPEType || '';
+  byId('reqSize').value = req?.Size || '';
+  byId('reqQty').value = req?.Quantity || 1;
+  byId('reqDate').value = req?.RequestDate || todayISO();
+  byId('reqNeedBy').value = req?.NeedByDate || '';
+  byId('reqStatus').value = req?.Status || 'Open';
+  byId('reqNotes').value = req?.Notes || '';
+  byId('dlgRequest').showModal();
+}
+function editRequest(id){
+  const r = requests.find(x=>x.RequestID===id);
+  if(!r) return;
+  openRequestDialog(r);
+}
+function saveRequestFromDialog(){
+  const id = byId('reqId').value || uid();
+  const empId = byId('reqEmployee').value;
+  const emp = employees.find(e=>e.EmployeeID===empId);
+  if(!emp){ alert('Select a valid employee'); return; }
+  const obj = {
+    RequestID: id,
+    EmployeeID: emp.EmployeeID,
+    EmployeeName: emp.Name,
+    RequestDate: byId('reqDate').value || todayISO(),
+    PPEType: (byId('reqType').value||'').trim(),
+    Size: (byId('reqSize').value||'').trim(),
+    Quantity: Number(byId('reqQty').value||1),
+    Status: byId('reqStatus').value,
+    NeedByDate: byId('reqNeedBy').value,
+    Notes: (byId('reqNotes').value||'').trim(),
+    ClosedDate: (byId('reqStatus').value==='Closed')
+      ? (requests.find(r=>r.RequestID===id)?.ClosedDate || todayISO())
+      : ''
+  };
+  if(!obj.PPEType){ alert('PPE Type is required'); return; }
+  const idx = requests.findIndex(r=>r.RequestID===id);
+  if(idx>=0) requests[idx]=obj; else requests.push(obj);
+  markDirty(); byId('dlgRequest').close(); renderRequests();
+}
+function closeRequest(id){
+  const r = requests.find(x=>x.RequestID===id);
+  if(!r) return;
+  if(!confirm('Close this request?')) return;
+  r.Status = 'Closed';
+  r.ClosedDate = todayISO();
+  markDirty(); renderRequests();
+}
+function deleteRequest(id){
+  if(!confirm('Delete this request permanently?')) return;
+  requests = requests.filter(r=>r.RequestID!==id);
+  markDirty(); renderRequests();
+}
+
+/* ========= Excel I/O ========= */
+async function openExcelFile(file){
+  try{
+    const data = await file.arrayBuffer();
+    const wb = XLSX.read(data, {type:'array', cellDates:true});
+    const eSheet = wb.Sheets['Employees'];
+    const rSheet = wb.Sheets['PPERequests'];
+    if(!eSheet || !rSheet){
+      alert('The workbook must have "Employees" and "PPERequests" sheets.');
+      return;
+    }
+    employees = XLSX.utils.sheet_to_json(eSheet, {defval:''});
+    requests  = XLSX.utils.sheet_to_json(rSheet, {defval:''});
+    // Normalize
+    employees.forEach(e=>{
+      e.EmployeeID = e.EmployeeID || uid();
+      e.Name = e.Name || '';
+      e.Status = e.Status || 'Active';
+      e.HireDate = e.HireDate ? toISODate(e.HireDate) : '';
+    });
+    requests.forEach(r=>{
+      r.RequestID = r.RequestID || uid();
+      r.RequestDate = r.RequestDate ? toISODate(r.RequestDate) : todayISO();
+      r.NeedByDate = r.NeedByDate ? toISODate(r.NeedByDate) : '';
+      r.ClosedDate = r.ClosedDate ? toISODate(r.ClosedDate) : '';
+      if(!r.EmployeeName){
+        const emp = employees.find(e=>e.EmployeeID===r.EmployeeID);
+        r.EmployeeName = emp?.Name || '';
+      }
+    });
+    markDirty(false);
+    refreshEmployeeDropdowns(); renderEmployees(); renderRequests();
+    alert('Excel DB loaded successfully.');
+  }catch(err){
+    console.error('openExcelFile error:', err);
+    alert('Failed to open the Excel file. See console for details.');
+  }
+}
+
+function toISODate(val){
+  if(!val) return '';
+  if (typeof val === 'string'){
+    const d = new Date(val);
+    if(!isNaN(d)) return d.toISOString().slice(0,10);
+  }
+  if (val instanceof Date){
+    return new Date(val.getTime()-val.getTimezoneOffset()*60000).toISOString().slice(0,10);
+  }
+  if (typeof val === 'number'){
+    const d = XLSX.SSF.parse_date_code(val);
+    if(d) {
+      const js = new Date(Date.UTC(d.y, (d.m||1)-1, d.d||1));
+      return js.toISOString().slice(0,10);
+    }
+  }
+  return '';
+}
+
+function buildWorkbookFromState(){
+  const wb = XLSX.utils.book_new();
+  const eSheet = XLSX.utils.json_to_sheet(employees, {header:['EmployeeID','Name','Department','Role','Status','HireDate']});
+  const rSheet = XLSX.utils.json_to_sheet(requests, {header:['RequestID','EmployeeID','EmployeeName','RequestDate','PPEType','Size','Quantity','Status','NeedByDate','Notes','ClosedDate']});
+  XLSX.utils.book_append_sheet(wb, eSheet, 'Employees');
+  XLSX.utils.book_append_sheet(wb, rSheet, 'PPERequests');
+  return wb;
+}
+
+function saveDbToExcel(){
+  if(!employees.length){
+    alert('No employees in database—create or load first.');
+    return;
+  }
+  if (typeof XLSX === 'undefined'){
+    alert('Excel library not loaded. If offline, use the offline HTML with local xlsx.full.min.js');
+    return;
+  }
+  const wb = buildWorkbookFromState();
+  // Primary: Blob + anchor
+  try {
+    const array = XLSX.write(wb, { bookType: 'xlsx', type: 'array', compression: true, cellDates: true });
+    const blob = new Blob([array], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none'; a.href = url; a.download = 'ppe_db.xlsx';
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    markDirty(false);
+    return;
+  } catch (e) {
+    console.error('Blob download path failed, trying XLSX.writeFile...', e);
+  }
+  // Fallback
+  try {
+    XLSX.writeFile(wb, 'ppe_db.xlsx', { compression: true, cellDates: true });
+    markDirty(false);
+  } catch (e2) {
+    console.error('XLSX.writeFile fallback failed:', e2);
+    alert('Saving failed. Check console (F12).');
+  }
+}
+
+function createNewDbFromNames(names){
+  const trimmed = (names||'').split('\n').map(x=>x.trim()).filter(Boolean);
+  if(!trimmed.length){ alert('Please provide at least one name.'); return; }
+  employees = trimmed.map(n=>({ EmployeeID: uid(), Name: n, Department: '', Role: '', Status: 'Active', HireDate: '' }));
+  requests = [];
+  refreshEmployeeDropdowns(); renderEmployees(); renderRequests();
+  markDirty(true);
+  saveDbToExcel();
+}
+
+/* ========= PRETTY REPORTS ========= */
+function buildEmployeeReportPage(emp){
+  const myReq = requests.filter(x=>x.EmployeeID===emp.EmployeeID).sort((a,b)=> (a.RequestDate < b.RequestDate ? 1 : -1));
+  const open = myReq.filter(x=>x.Status==='Open');
+  const closed = myReq.filter(x=>x.Status==='Closed');
+  const today = new Date().toLocaleString();
+  const Row = (x) => `
+    <tr>
+      <td>${escapeHtml(x.RequestDate||'')}</td>
+      <td>${escapeHtml(x.PPEType||'')}</td>
+      <td>${escapeHtml(x.Size||'')}</td>
+      <td>${escapeHtml(String(x.Quantity||''))}</td>
+      <td>${escapeHtml(x.NeedByDate||'')}</td>
+      <td>${x.Status==='Open' ? '<span class="badge open">Open</span>' : '<span class="badge closed">Closed</span>'}</td>
+      <td>${escapeHtml(x.Notes||'')}</td>
+    </tr>
+  `;
+  return `
+  <section class="report-page">
+    <div class="report-header">
+      <div class="report-brand">
+        ${REPORT.logo ? `<img src="${REPORT.logo}" alt="Logo">` : ''}
+        <div>
+          <h2>${escapeHtml(REPORT.orgName)}</h2>
+          <div class="report-meta">${escapeHtml(REPORT.site)} • Generated ${escapeHtml(today)}</div>
+          <div class="report-title">PPE Request Report – ${escapeHtml(emp.Name)}</div>
+          <div class="report-kpis">
+            <span class="kpi open"><span class="dot"></span> Open <strong>${open.length}</strong></span>
+            <span class="kpi closed"><span class="dot"></span> Closed <strong>${closed.length}</strong></span>
+            <span class="kpi total"><span class="dot"></span> Total <strong>${myReq.length}</strong></span>
+          </div>
+        </div>
+      </div>
+      <div class="small">
+        <div><strong>Status:</strong> ${escapeHtml(emp.Status||'-')}</div>
+        <div><strong>Dept / Role:</strong> ${escapeHtml(emp.Department||'-')} / ${escapeHtml(emp.Role||'-')}</div>
+        <div><strong>Hire Date:</strong> ${escapeHtml(emp.HireDate||'-')}</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Open Requests</h3>
+      ${open.length ? `
+        <table class="table">
+          <thead><tr>
+            <th>Date</th><th>PPE Type</th><th>Size</th><th>Qty</th><th>Need By</th><th>Status</th><th>Notes</th>
+          </tr></thead>
+          <tbody>
+            ${open.map(Row).join('')}
+          </tbody>
+        </table>
+      ` : `<div class="small">No open requests.</div>`}
+    </div>
+
+    <div class="section">
+      <h3>History</h3>
+      ${myReq.length ? `
+        <table class="table">
+          <thead><tr>
+            <th>Date</th><th>PPE Type</th><th>Size</th><th>Qty</th><th>Need By</th><th>Status</th><th>Notes</th>
+          </tr></thead>
+          <tbody>
+            ${myReq.map(Row).join('')}
+          </tbody>
+        </table>
+      ` : `<div class="small">No history available.</div>`}
+    </div>
+
+    <div class="divider"></div>
+    <div class="small">${escapeHtml(REPORT.footerNote)}</div>
+  </section>
+  `;
+}
+
+function printEmployeeReport(empId){
+  const emp = employees.find(e=>e.EmployeeID===empId);
+  if(!emp){ alert('Select a valid employee.'); return; }
+  byId('printArea').innerHTML = `<div class="report-wrap">${buildEmployeeReportPage(emp)}</div>`;
+  window.print();
+}
+
+function printAllReports(){
+  if(!employees.length){ alert('No employees.'); return; }
+  const pages = employees.map(e=> buildEmployeeReportPage(e) + '<div class="page-break"></div>').join('');
+  byId('printArea').innerHTML = `<div class="report-wrap">${pages}</div>`;
+  window.print();
+}
+
+/* ========= Reports export ========= */
+function exportReportsExcel_all(){
+  if(!employees.length){ alert('No employees.'); return; }
+  const wb = XLSX.utils.book_new();
+  const summary = employees.map(e=>{
+    const myReq = requests.filter(r=>r.EmployeeID===e.EmployeeID);
+    const open = myReq.filter(r=>r.Status==='Open').length;
+    const closed = myReq.filter(r=>r.Status==='Closed').length;
+    return {EmployeeName:e.Name, Department:e.Department, Role:e.Role, Status:e.Status, OpenRequests:open, ClosedRequests:closed, TotalRequests:myReq.length};
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary), 'Summary');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(requests), 'AllRequests');
+  employees.forEach(e=>{
+    const myReq = requests.filter(r=>r.EmployeeID===e.EmployeeID);
+    const ws = XLSX.utils.json_to_sheet(myReq);
+    XLSX.utils.book_append_sheet(wb, ws, safeSheetName(e.Name).slice(0,31));
+  });
+  XLSX.writeFile(wb, 'ppe_reports_all.xlsx');
+}
+function exportReportExcel_one(empId){
+  const emp = employees.find(e=>e.EmployeeID===empId);
+  if(!emp){ alert('Select an employee first'); return; }
+  const myReq = requests.filter(r=>r.EmployeeID===empId);
+  const wb = XLSX.utils.book_new();
+  const meta = [{EmployeeName:emp.Name, Department:emp.Department, Role:emp.Role, Status:emp.Status, HireDate:emp.HireDate}];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(meta), 'Employee');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(myReq), 'Requests');
+  XLSX.writeFile(wb, `ppe_report_${slug(emp.Name)}.xlsx`);
+}
+
+/* ========= Utilities ========= */
+function safeSheetName(name){ return (name||'').replace(/[\\/?*\[\]:]/g,'_'); }
+function slug(s){ return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,''); }
+function escapeHtml(s){ return (s??'').toString().replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#039;' }[m])); }
+
+/* ========= Optional: File System Access (Chrome/Edge over localhost/HTTPS) ========= */
+const canFS = !!(window.showOpenFilePicker && window.showSaveFilePicker);
+let dbHandle = null;
+async function openDbWithPicker(){
+  if(!canFS){ alert('File System Access API not available in this browser/context.'); return; }
+  try {
+    const [handle] = await window.showOpenFilePicker({
+      types: [{ description: 'Excel', accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] } }],
+      excludeAcceptAllOption: false, multiple: false
+    });
+    dbHandle = handle; const file = await handle.getFile(); await openExcelFile(file);
+  } catch (e) { if(e?.name !== 'AbortError') console.error('openDbWithPicker error:', e); }
+}
+async function saveDbSameFile(){
+  if(!canFS){ alert('File System Access API not available in this browser/context.'); return; }
+  if(!employees.length){ alert('No employees in database.'); return; }
+  try {
+    if(!dbHandle){
+      dbHandle = await window.showSaveFilePicker({ suggestedName: 'ppe_db.xlsx', types: [{ description: 'Excel', accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] } }] });
+    }
+    const wb = buildWorkbookFromState();
+    const data = XLSX.write(wb, { bookType:'xlsx', type:'array', compression:true, cellDates:true });
+    const writable = await dbHandle.createWritable(); await writable.write(data); await writable.close();
+    markDirty(false); alert('Saved to the same file successfully.');
+  } catch (e) { if(e?.name !== 'AbortError'){ console.error('saveDbSameFile error', e); alert('Saving failed. See console for details.'); } }
+}
+
+/* ========= Wire-up ========= */
+byId('openFile').addEventListener('change', e=>{ const f = e.target.files?.[0]; if(f) openExcelFile(f); });
+byId('createDbBtn').addEventListener('click', ()=> byId('dlgNewDb').showModal());
+byId('btnCreateDb').addEventListener('click', ()=>{ createNewDbFromNames(byId('seedEmployees').value); byId('dlgNewDb').close(); });
+byId('saveDbBtn').addEventListener('click', saveDbToExcel);
+byId('addEmployeeBtn').addEventListener('click', newEmployee);
+byId('btnSaveEmployee').addEventListener('click', saveEmployeeFromDialog);
+byId('addRequestBtn').addEventListener('click', ()=> openRequestDialog());
+byId('btnSaveRequest').addEventListener('click', saveRequestFromDialog);
+byId('filterEmployee').addEventListener('change', renderRequests);
+byId('filterType').addEventListener('input', renderRequests);
+byId('filterStatus').addEventListener('change', renderRequests);
+byId('empSearch').addEventListener('input', renderEmployees);
+byId('empStatusFilter').addEventListener('change', renderEmployees);
+byId('printSelectedEmp').addEventListener('click', ()=>{ const sel = byId('filterEmployee').value || byId('reportEmployee').value; if(!sel) return alert('Select an employee in the filter or report dropdown.'); printEmployeeReport(sel); });
+byId('printAllBtn').addEventListener('click', printAllReports);
+byId('exportReportAllBtn').addEventListener('click', exportReportsExcel_all);
+byId('exportReportOneBtn').addEventListener('click', ()=>{ const id = byId('reportEmployee').value; if(!id) return alert('Select an employee first.'); exportReportExcel_one(id); });
+byId('openDbPickerBtn')?.addEventListener('click', ()=> openDbWithPicker());
+byId('saveSameBtn')?.addEventListener('click', ()=> saveDbSameFile());
+if(!canFS){ byId('openDbPickerBtn').style.display = 'none'; byId('saveSameBtn').style.display = 'none'; }
+window.addEventListener('beforeunload', (e)=>{ if(hasChanges){ e.preventDefault(); e.returnValue=''; } });
+refreshEmployeeDropdowns(); renderEmployees(); renderRequests();
+</script>
+</body>
+</html>
